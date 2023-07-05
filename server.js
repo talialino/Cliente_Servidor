@@ -57,7 +57,7 @@ io.on("connection", (socket) => {
 					const filesToRemove = []
 
 					directories.forEach((directory) => {
-						const filePath = path.join(directory, file)
+						const filePath = path.join(directory, encodedFilename)
 						if (fs.existsSync(filePath)) {
 							filesToRemove.push(filePath)
 						}
@@ -117,17 +117,20 @@ io.on("connection", (socket) => {
 			const directories = getAvailableDirectories()
 
 			let found = false
+			let fileLocation = null
 
 			directories.forEach((directory) => {
 				const filePath = path.resolve(directory, filename)
 				if (fs.existsSync(filePath)) {
-					const fileStream = fs.createReadStream(filePath)
-					socket.emit("retrieveFileResponse", fileStream)
+					fileLocation = filePath
 					found = true
 				}
 			})
 
-			if (!found) {
+			if (found) {
+				// Enviar resposta com o caminho do arquivo para o cliente
+				socket.emit("retrieveFileResponse", fileLocation)
+			} else {
 				// Enviar resposta de arquivo não encontrado para o cliente
 				socket.emit("retrieveFileResponse", null)
 			}

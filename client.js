@@ -26,12 +26,20 @@ socket.on("connect", () => {
 
 	socket.emit("retrieveFile", fileToRetrieve)
 
-	socket.on("retrieveFileResponse", (fileStream) => {
-		if (fileStream) {
-			const destinationPath = `./${fileToRetrieve}`
+	socket.on("retrieveFileResponse", (fileLocation) => {
+		if (fileLocation) {
+			const readStream = fs.createReadStream(fileLocation)
+			const writeStream = fs.createWriteStream(`./${fileToRetrieve}`)
 
-			fileStream.pipe(fs.createWriteStream(destinationPath))
-			console.log(`Arquivo ${fileToRetrieve} recuperado com sucesso.`)
+			readStream.pipe(writeStream)
+
+			readStream.on("end", () => {
+				console.log(`Arquivo ${fileToRetrieve} recuperado com sucesso.`)
+			})
+
+			readStream.on("error", (err) => {
+				console.error(`Erro ao ler o arquivo ${fileToRetrieve}:`, err)
+			})
 		} else {
 			console.log(`Arquivo ${fileToRetrieve} não encontrado.`)
 		}
