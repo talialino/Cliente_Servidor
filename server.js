@@ -1,31 +1,35 @@
-const express = require('express');
-const multer = require('multer');
-const fs = require('fs');
+const fs = require("fs")
+const multer = require("multer")
+const express = require("express")
+const http = require("http")
+const path = require("path")
+const socketIO = require("socket.io")
 
-const app = express();
-const port = 3000;
+const app = express()
+const server = http.createServer(app)
+const io = socketIO(server)
+const port = 3000
 
-// CERTIFIQUE DE CRIAR A PASTA 'uploads' NO MESMO DIRETÓRIO DE 'server.json'
 // Configuração do Multer para upload de arquivos
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/');
-  },
-  filename: (req, file, cb) => {
-    cb(null, file.originalname);
-  }
-});
+	destination: (req, file, cb) => {
+		cb(null, "uploads/")
+	},
+	filename: (req, file, cb) => {
+		cb(null, file.originalname)
+	},
+})
 
-const upload = multer({ storage: storage });
+const upload = multer({ storage: storage })
 
 // Mapa para rastrear o número de réplicas de cada arquivo
-const replicasMap = new Map();
+const replicasMap = new Map()
 
 // Criar diretórios caso não existam
 const mkdirSyncRecursive = (directory) => {
-	const path = directory.replace(/\/$/, "").split("/")
+	const pathParts = directory.replace(/\/$/, "").split("/")
 
-	path.reduce((parentDir, childDir) => {
+	pathParts.reduce((parentDir, childDir) => {
 		const curDir = parentDir + childDir + "/"
 
 		if (!fs.existsSync(curDir)) {
@@ -126,8 +130,6 @@ app.post("/deposit", upload.single("file"), (req, res, next) => {
 	}
 })
 
-const path = require("path")
-
 // Rota para o modo recuperação
 app.get("/retrieve", (req, res, next) => {
 	try {
@@ -160,16 +162,33 @@ app.get("/retrieve", (req, res, next) => {
 
 // Middleware de tratamento de erros
 app.use((err, req, res, next) => {
-  console.error(err);
-  res.status(500).send('Ocorreu um erro durante o processamento da solicitação.');
-});
-
+	console.error(err)
+	res.status(500).send("Ocorreu um erro durante o processamento da solicitação.")
+})
 
 // Função auxiliar para obter os diretórios disponíveis
 function getAvailableDirectories() {
-  return ['directory1/', 'directory2/', 'directory3/']; // quantidade de diretórios diferentes fornecidos
+	return ["directory1/", "directory2/", "directory3/"] // quantidade de diretórios diferentes fornecidos
 }
 
-app.listen(port, () => {
-  console.log(`Servidor rodando na porta ${port}`);
-});
+// Iniciar o servidor e o socket.io
+server.listen(port, () => {
+	console.log(`Servidor rodando na porta ${port}`)
+})
+
+io.on("connection", (socket) => {
+	console.log("Novo cliente conectado.")
+
+	// Escutar eventos personalizados
+	socket.on("customEvent", (data) => {
+		console.log("Evento personalizado recebido:", data)
+	})
+
+	// Emitir eventos personalizados
+	socket.emit("customEvent", "Dados do evento personalizado")
+
+	// Desconectar cliente
+	socket.on("disconnect", () => {
+		console.log("Cliente desconectado.")
+	})
+})
